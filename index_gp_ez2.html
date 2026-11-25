@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HelpDesk TI | Sistema de Controle de Chamados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2f5f4;--surf:#fff;--ink:#16262b;--mute:#5d6f74;--line:#dde5e3;
+  --acc:#0f766e;--acc-ink:#fff;--acc-soft:#e1f2ef;--side:#0f2a2d;
+  --aberto:#c2410c;--and:#a16207;--ok:#15803d;--baixa:#64748b;--media:#a16207;--alta:#c2410c;--crit:#7e22ce;
+  --foco:#0f766e;
+}
+[data-tema=escuro]{
+  --bg:#0c1819;--surf:#13272a;--ink:#e6f0ee;--mute:#93a9ad;--line:#244045;
+  --acc:#2dd4bf;--acc-ink:#062a27;--acc-soft:#173a3c;--side:#081214;
+  --aberto:#fb923c;--and:#facc15;--ok:#4ade80;--baixa:#94a3b8;--media:#facc15;--alta:#fb923c;--crit:#c084fc;
+  --foco:#2dd4bf;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+:focus-visible{outline:2px solid var(--foco);outline-offset:2px}
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer}
+
+/* ---------- botões e campos ---------- */
+.btn{background:var(--acc);color:var(--acc-ink);border:1px solid var(--acc);border-radius:8px;padding:9px 16px;font-weight:600;transition:filter .15s}
+.btn:hover:not(:disabled){filter:brightness(1.1)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sec{background:transparent;color:var(--acc);border-color:var(--line)}
+.btn.sec:hover:not(:disabled){background:var(--acc-soft);filter:none}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.peq{padding:5px 12px;font-size:12.5px}
+.campo{margin-bottom:14px}
+.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+.campo input,.campo select,.campo textarea{width:100%;font:inherit;color:var(--ink);background:var(--surf);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--acc);outline:none;box-shadow:0 0 0 3px var(--acc-soft)}
+.campo.erro input,.campo.erro select,.campo.erro textarea{border-color:var(--aberto)}
+.campo small{display:none;color:var(--aberto);font-size:12px;margin-top:3px}
+.campo.erro small{display:block}
+.linha{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ---------- login ---------- */
+.tela-login{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr}
+.marca{background:var(--side);color:#e6f0ee;padding:56px;display:flex;flex-direction:column;justify-content:space-between}
+.marca .logo{font-weight:800;font-size:20px;display:flex;align-items:center;gap:10px}
+.marca h2{font-size:38px;line-height:1.15;font-weight:800;max-width:15ch}
+.marca p{color:#9fb8b5;max-width:42ch;margin-top:14px}
+.login-form{display:flex;align-items:center;justify-content:center;padding:32px}
+.login-form form{width:100%;max-width:340px}
+.login-form h1{font-size:24px;margin-bottom:4px}
+.login-form .sub{color:var(--mute);margin-bottom:22px}
+.login-form a{color:var(--acc);font-size:13px}
+
+/* ---------- estrutura do app ---------- */
+#app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+aside{background:var(--side);color:#cfe0de;padding:22px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+aside .logo{font-weight:800;font-size:17px;color:#fff;padding:0 10px 22px;display:flex;gap:10px;align-items:center}
+.ico{width:28px;height:28px;border-radius:8px;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font-size:14px;font-weight:800}
+aside nav{display:flex;flex-direction:column;gap:4px}
+aside nav button{background:none;border:0;color:inherit;text-align:left;padding:10px 12px;border-radius:8px;font-weight:500}
+aside nav button:hover{background:rgba(255,255,255,.07)}
+aside nav button.ativo{background:rgba(255,255,255,.12);color:#fff;font-weight:700}
+aside .grupo{font-size:12px;color:#7f9a97;padding:14px 12px 6px}
+aside .rodape{margin-top:auto;padding:14px 10px 0;border-top:1px solid rgba(255,255,255,.1);font-size:13px}
+aside .rodape button{background:none;border:0;color:#9fd8d1;padding:4px 0;margin-right:12px;font-size:13px}
+main{padding:28px 32px;max-width:1180px;width:100%}
+.tela{display:none}.tela.ativa{display:block}
+.ph{margin-bottom:22px}
+.ph h1{font-size:24px;font-weight:800}
+.ph p{color:var(--mute)}
+
+.grid-2{display:grid;grid-template-columns:1.25fr 1fr;gap:20px;align-items:start}
+.painel{background:var(--surf);border:1px solid var(--line);border-radius:12px;padding:20px}
+.painel h2{font-size:16px;font-weight:700;margin-bottom:14px}
+
+/* ---------- indicadores ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:12px;padding:16px 18px;border-top:4px solid var(--c,var(--line))}
+.card .num{font-size:30px;font-weight:800;line-height:1.2}
+.card .rotulo{color:var(--mute);font-size:13px}
+
+/* ---------- tabela ---------- */
+.ferr{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.ferr input{flex:1;min-width:180px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 11px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:transparent;border:1px solid var(--line);color:var(--mute);border-radius:99px;padding:5px 13px;font-size:13px;font-weight:600}
+.chip.ativo{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.rolar{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:9px 12px;font-size:12.5px;color:var(--mute);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--line)}
+tbody tr:hover td{background:var(--acc-soft)}
+tbody tr:last-child td{border-bottom:0}
+.vazio{text-align:center;color:var(--mute);padding:26px 0}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);white-space:nowrap}
+.badge::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--c)}
+.s-aberto{--c:var(--aberto)}.s-andamento{--c:var(--and)}.s-resolvido{--c:var(--ok)}
+.p-baixa{--c:var(--baixa)}.p-media{--c:var(--media)}.p-alta{--c:var(--alta)}.p-critica{--c:var(--crit)}
+
+/* ---------- detalhe ---------- */
+.passos{display:flex;gap:6px;margin:4px 0 18px}
+.passo{flex:1;padding:8px 10px;border-radius:8px;background:var(--bg);color:var(--mute);font-size:12.5px;font-weight:600;text-align:center}
+.passo.feito{background:var(--acc-soft);color:var(--acc)}
+.passo.atual{background:var(--acc);color:var(--acc-ink)}
+.info{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin-bottom:14px}
+.info dt{color:var(--mute)}
+.desc{background:var(--bg);border-radius:8px;padding:12px 14px}
+.acoes{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
+.timeline{border-left:2px solid var(--line);margin-left:6px;padding-left:18px}
+.evento{position:relative;margin-bottom:16px}
+.evento::before{content:'';position:absolute;left:-25px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--acc)}
+.evento .quem{font-weight:700}
+.evento .quando{font-size:12px;color:var(--mute);font-weight:400;margin-left:6px}
+.comentario{display:flex;gap:10px;margin-top:14px}
+.comentario input{flex:1;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+
+#toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:10px;font-weight:600;transform:translateY(20px);opacity:0;pointer-events:none;transition:.25s}
+#toast.mostra{transform:none;opacity:1}
+
+@media(max-width:900px){
+  .tela-login{grid-template-columns:1fr}.marca{padding:28px}.marca h2{font-size:26px}
+  #app{grid-template-columns:1fr}
+  aside{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 14px;gap:8px}
+  aside .logo{padding:0 8px 0 0}aside nav{flex-direction:row}aside .grupo{display:none}
+  aside .rodape{margin:0 0 0 auto;border:0;padding:0}
+  main{padding:20px 16px}.grid-2,.linha{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="aviso" hidden style="background:#c2410c;color:#fff;padding:10px 16px;font-weight:600;text-align:center"></div>
+
+<!-- ============ LOGIN ============ -->
+<section id="login" class="tela-login">
+  <div class="marca">
+    <div class="logo"><span class="ico">H</span> HelpDesk TI</div>
+    <div>
+      <h2>Do problema à solução, sem perder o chamado.</h2>
+      <p>Abra pedidos de suporte, acompanhe cada etapa e dê ao time de TI o contexto certo desde o primeiro contato.</p>
+    </div>
+    <small style="color:#7f9a97">Protótipo de interface</small>
+  </div>
+  <div class="login-form">
+    <form onsubmit="entrar(event)">
+      <h1>Entrar</h1>
+      <p class="sub">Use seu e-mail corporativo.</p>
+      <div class="campo"><label for="lEmail">E-mail</label><input id="lEmail" type="email" placeholder="seu.nome@empresa.com.br" required></div>
+      <div class="campo"><label for="lSenha">Senha</label><input id="lSenha" type="password" placeholder="••••••••" required></div>
+      <button class="btn" style="width:100%">Entrar</button>
+      <p style="margin-top:14px"><a href="#" onclick="return false">Esqueci minha senha</a></p>
+    </form>
+  </div>
+</section>
+
+<!-- ============ APLICAÇÃO ============ -->
+<div id="app" hidden>
+  <aside>
+    <div class="logo"><span class="ico">H</span> HelpDesk TI</div>
+    <nav>
+      <span class="grupo">Solicitante</span>
+      <button data-t="abrir" onclick="ir('abrir')">Abrir chamado</button>
+      <span class="grupo">Técnico</span>
+      <button data-t="painel" onclick="ir('painel')">Painel de atendimento</button>
+    </nav>
+    <div class="rodape">
+      <div style="margin-bottom:8px">Maria Souza<br><span style="color:#7f9a97">Financeiro</span></div>
+      <button onclick="alternarTema()">Tema claro/escuro</button><button onclick="ir('login')">Sair</button>
+    </div>
+  </aside>
+
+  <main>
+    <!-- TELA: ABRIR CHAMADO -->
+    <section id="abrir" class="tela">
+      <header class="ph"><h1>Abrir novo chamado</h1><p>Quanto mais detalhes, mais rápido o atendimento.</p></header>
+      <div class="grid-2">
+        <form class="painel" onsubmit="enviar(event)" novalidate>
+          <div class="linha">
+            <div class="campo"><label for="fNome">Nome *</label><input id="fNome" value="Maria Souza"><small>Informe seu nome.</small></div>
+            <div class="campo"><label for="fDep">Departamento *</label>
+              <select id="fDep"><option value="">Selecione...</option><option selected>Financeiro</option><option>Comercial</option><option>Acadêmico</option><option>RH</option><option>TI</option><option>Outros</option></select><small>Escolha o departamento.</small></div>
+          </div>
+          <div class="linha">
+            <div class="campo"><label for="fEmail">E-mail *</label><input id="fEmail" type="email" value="maria.souza@empresa.com.br"><small>Informe um e-mail válido.</small></div>
+            <div class="campo"><label for="fTel">Telefone *</label><input id="fTel" type="tel" placeholder="(11) 90000-0000"><small>Informe um telefone.</small></div>
+          </div>
+          <div class="campo"><label for="fTit">Título do problema *</label><input id="fTit" placeholder="Ex.: Computador não liga"><small>Resuma o problema em poucas palavras.</small></div>
+          <div class="linha">
+            <div class="campo"><label for="fCat">Categoria *</label>
+              <select id="fCat"><option value="">Selecione...</option><option>Hardware</option><option>Software</option><option>Rede / Internet</option><option>Impressora</option><option>E-mail</option><option>Outros</option></select><small>Escolha uma categoria.</small></div>
+            <div class="campo"><label for="fPrio">Prioridade *</label>
+              <select id="fPrio"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option><option value="critica">Crítica</option></select></div>
+          </div>
+          <div class="linha">
+            <div class="campo"><label for="fEq">Equipamento *</label><input id="fEq" placeholder="Ex.: Desktop Dell OptiPlex"><small>Informe o equipamento.</small></div>
+            <div class="campo"><label for="fNum">Número do equipamento *</label><input id="fNum" placeholder="Ex.: PC-0254"><small>Informe o número.</small></div>
+          </div>
+          <div class="campo"><label for="fDesc">Descrição do problema *</label><textarea id="fDesc" rows="4" placeholder="O que aconteceu, quando começou e quais mensagens de erro apareceram?"></textarea><small>Descreva o problema.</small></div>
+          <button class="btn">Enviar chamado</button>
+          <input type="file" id="anexo" hidden onchange="anexoNome.textContent=this.files[0]?this.files[0].name:''">
+          <button type="button" class="btn sec" onclick="anexo.click()">Anexar arquivo</button>
+          <span id="anexoNome" style="margin-left:8px;color:var(--mute);font-size:13px"></span>
+        </form>
+        <div class="painel">
+          <h2>Meus chamados</h2>
+          <div class="rolar"><table>
+            <thead><tr><th>Nº</th><th>Título</th><th>Status</th></tr></thead>
+            <tbody id="meus"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TELA: PAINEL DO TÉCNICO -->
+    <section id="painel" class="tela">
+      <header class="ph"><h1>Painel de atendimento</h1><p>Carlos Lima, Analista de Suporte</p></header>
+      <div class="cards">
+        <div class="card" style="--c:var(--aberto)"><div class="num" id="nAberto"></div><div class="rotulo">Chamados abertos</div></div>
+        <div class="card" style="--c:var(--and)"><div class="num" id="nAndamento"></div><div class="rotulo">Em andamento</div></div>
+        <div class="card" style="--c:var(--ok)"><div class="num" id="nResolvido"></div><div class="rotulo">Resolvidos no mês</div></div>
+        <div class="card"><div class="num">4h12</div><div class="rotulo">Tempo médio de resolução</div></div>
+      </div>
+      <div class="painel">
+        <h2>Fila de atendimento</h2>
+        <div class="ferr">
+          <input id="busca" type="search" placeholder="Buscar por número, título, solicitante ou setor" oninput="busca=this.value;renderPainel()" aria-label="Buscar chamados">
+          <div class="chips" id="chips"></div>
+        </div>
+        <div class="rolar"><table>
+          <thead><tr><th>Nº</th><th>Título</th><th>Solicitante</th><th>Setor</th><th>Prioridade</th><th>Status</th><th></th></tr></thead>
+          <tbody id="fila"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- TELA: DETALHE -->
+    <section id="detalhe" class="tela">
+      <header class="ph">
+        <button class="btn sec peq" onclick="ir('painel')" style="margin-bottom:10px">Voltar à fila</button>
+        <h1 id="dtTitulo"></h1>
+      </header>
+      <div class="grid-2">
+        <div class="painel">
+          <div class="passos" id="passos"></div>
+          <dl class="info" id="dtInfo"></dl>
+          <p class="desc" id="dtDesc"></p>
+          <div class="acoes">
+            <button class="btn" id="bAssumir" onclick="mudarStatus('andamento')">Assumir chamado</button>
+            <button class="btn ok" id="bResolver" onclick="mudarStatus('resolvido')">Marcar como resolvido</button>
+            <button class="btn sec" onclick="toast('Protótipo: encaminhamento ainda não implementado')">Encaminhar a outro técnico</button>
+          </div>
+        </div>
+        <div class="painel">
+          <h2>Histórico e comentários</h2>
+          <div class="timeline" id="dtHist"></div>
+          <div class="comentario">
+            <input id="novoComentario" placeholder="Escrever um comentário..." onkeydown="if(event.key==='Enter')comentar()" aria-label="Novo comentário">
+            <button class="btn" onclick="comentar()">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL='https://bxdgnbsgyhlwwpyjfcbn.supabase.co';
+const SUPABASE_KEY='sb_publishable_S89KAX2ZfndXwhGBE1o3EA_zyA15l4z';
+const sb=(window.supabase&&!SUPABASE_URL.startsWith('COLE_')&&!SUPABASE_KEY.startsWith('COLE_'))
+  ?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+let chamados=[];
+const ST={aberto:'Aberto',andamento:'Em andamento',resolvido:'Resolvido'};
+const PR={baixa:'Baixa',media:'Média',alta:'Alta',critica:'Crítica'};
+const PESO={critica:0,alta:1,media:2,baixa:3};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+const bs=k=>`<span class="badge s-${k}">${ST[k]}</span>`;
+const bp=k=>`<span class="badge p-${k}">${PR[k]}</span>`;
+const agora=()=>new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}).replace(',','');
+let atual=null,filtro='todos',busca='';
+
+const fmt=d=>new Date(d).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}).replace(',','');
+function avisar(m){const a=$('aviso');a.textContent=m;a.hidden=!m}
+
+async function carregar(){
+  if(!sb){
+    avisar(window.supabase
+      ?'Falta colar a URL e a chave do Supabase no início do script (SUPABASE_URL e SUPABASE_KEY).'
+      :'Não foi possível carregar a biblioteca do Supabase. Verifique a conexão com a internet.');
+    renderMeus();renderPainel();return;
+  }
+  const {data,error}=await sb.from('chamados').select('*, historico(autor,quando,texto)').order('n',{ascending:false});
+  if(error){console.error(error);avisar('Erro ao ler o banco: '+error.message);return}
+  avisar('');
+  chamados=data.map(c=>({
+    ...c,
+    desc:c.descricao,
+    hist:(c.historico||[]).sort((a,b)=>new Date(a.quando)-new Date(b.quando)).map(h=>[h.autor,fmt(h.quando),h.texto])
+  }));
+  renderMeus();renderPainel();
+}
+async function recarregarAtual(){
+  const n=atual.n;
+  await carregar();
+  atual=chamados.find(c=>c.n===n)||atual;
+  renderDetalhe();
+}
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('mostra');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('mostra'),2600)}
+function alternarTema(){const d=document.documentElement;d.dataset.tema=d.dataset.tema==='escuro'?'claro':'escuro'}
+if(matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.dataset.tema='escuro';
+
+function ir(id){
+  const login=id==='login';
+  $('login').hidden=!login;$('app').hidden=login;
+  if(login)return;
+  document.querySelectorAll('.tela').forEach(t=>t.classList.toggle('ativa',t.id===id));
+  const nav=id==='detalhe'?'painel':id;
+  document.querySelectorAll('aside nav button').forEach(b=>b.classList.toggle('ativo',b.dataset.t===nav));
+  scrollTo(0,0);
+}
+function entrar(e){e.preventDefault();ir('abrir')}
+
+function renderMeus(){
+  const meus=chamados.filter(c=>c.nome==='Maria Souza');
+  $('meus').innerHTML=meus.length?meus.map(c=>`<tr><td>#${c.n}</td><td>${esc(c.titulo)}</td><td>${bs(c.status)}</td></tr>`).join(''):'<tr><td colspan="3" class="vazio">Você ainda não abriu chamados.</td></tr>';
+}
+function renderPainel(){
+  const q=s=>chamados.filter(c=>c.status===s).length;
+  $('nAberto').textContent=q('aberto');$('nAndamento').textContent=q('andamento');$('nResolvido').textContent=q('resolvido');
+  $('chips').innerHTML=[['todos','Todos'],['aberto','Abertos'],['andamento','Em andamento'],['resolvido','Resolvidos']]
+    .map(([k,r])=>`<button class="chip ${filtro===k?'ativo':''}" onclick="filtro='${k}';renderPainel()">${r}</button>`).join('');
+  const t=busca.trim().toLowerCase();
+  const lista=chamados
+    .filter(c=>filtro==='todos'||c.status===filtro)
+    .filter(c=>!t||[c.n,c.titulo,c.nome,c.setor].join(' ').toLowerCase().includes(t))
+    .sort((a,b)=>(a.status==='resolvido')-(b.status==='resolvido')||PESO[a.prio]-PESO[b.prio]||b.n-a.n);
+  $('fila').innerHTML=lista.length?lista.map(c=>`<tr><td>#${c.n}</td><td>${esc(c.titulo)}</td><td>${esc(c.nome)}</td><td>${esc(c.setor)}</td><td>${bp(c.prio)}</td><td>${bs(c.status)}</td>
+    <td><button class="btn sec peq" onclick="verChamado(${c.n})">Ver</button></td></tr>`).join(''):'<tr><td colspan="7" class="vazio">Nenhum chamado encontrado com esses filtros.</td></tr>';
+}
+function renderDetalhe(){
+  const c=atual,ordem=['aberto','andamento','resolvido'],i=ordem.indexOf(c.status);
+  $('dtTitulo').textContent=`#${c.n} ${c.titulo}`;
+  $('passos').innerHTML=ordem.map((s,k)=>`<div class="passo ${k<i?'feito':k===i?'atual':''}">${ST[s]}</div>`).join('');
+  $('dtInfo').innerHTML=`<dt>Solicitante</dt><dd>${esc(c.nome)} (${esc(c.setor)})</dd>
+    <dt>Contato</dt><dd>${esc(c.email)} | ${esc(c.tel)}</dd>
+    <dt>Equipamento</dt><dd>${esc(c.equip)} (${esc(c.num)})</dd>
+    <dt>Categoria</dt><dd>${esc(c.cat)}</dd>
+    <dt>Prioridade</dt><dd>${bp(c.prio)}</dd>`;
+  $('dtDesc').textContent=c.desc;
+  $('bAssumir').disabled=c.status!=='aberto';
+  $('bResolver').disabled=c.status==='resolvido';
+  $('dtHist').innerHTML=c.hist.map(h=>`<div class="evento"><div class="quem">${esc(h[0])}<span class="quando">${esc(h[1])}</span></div><div>${esc(h[2])}</div></div>`).join('');
+}
+function verChamado(n){atual=chamados.find(c=>c.n===n);renderDetalhe();ir('detalhe')}
+async function mudarStatus(s){
+  if(!sb){toast('Banco não configurado');return}
+  const {error}=await sb.from('chamados').update({status:s}).eq('n',atual.n);
+  if(error){console.error(error);toast('Erro ao atualizar o chamado');return}
+  await sb.from('historico').insert({chamado_n:atual.n,autor:'Carlos Lima',texto:s==='andamento'?'Assumiu o chamado.':'Marcou o chamado como resolvido.'});
+  await recarregarAtual();
+  toast(s==='andamento'?'Chamado assumido':'Chamado resolvido');
+}
+async function comentar(){
+  const t=$('novoComentario').value.trim();
+  if(!t)return;
+  if(!sb){toast('Banco não configurado');return}
+  const {error}=await sb.from('historico').insert({chamado_n:atual.n,autor:'Carlos Lima',texto:t});
+  if(error){console.error(error);toast('Erro ao salvar o comentário');return}
+  $('novoComentario').value='';
+  await recarregarAtual();
+}
+async function enviar(e){
+  e.preventDefault();
+  const ids=['fNome','fDep','fEmail','fTel','fTit','fCat','fEq','fNum','fDesc'];
+  let primeiro=null;
+  ids.forEach(id=>{
+    const el=$(id),ok=el.value.trim()&&(el.type!=='email'||el.checkValidity());
+    el.closest('.campo').classList.toggle('erro',!ok);
+    if(!ok&&!primeiro)primeiro=el;
+  });
+  if(primeiro){primeiro.focus();toast('Preencha os campos obrigatórios');return}
+  if(!sb){toast('Banco não configurado');return}
+  const v=id=>$(id).value.trim();
+  const {data,error}=await sb.from('chamados').insert({
+    titulo:v('fTit'),nome:v('fNome'),setor:v('fDep'),email:v('fEmail'),tel:v('fTel'),
+    equip:v('fEq'),num:v('fNum'),cat:v('fCat'),prio:v('fPrio'),descricao:v('fDesc')
+  }).select().single();
+  if(error){console.error(error);toast('Erro ao enviar o chamado');return}
+  await sb.from('historico').insert({chamado_n:data.n,autor:v('fNome'),texto:'Abriu o chamado.'});
+  ['fTel','fTit','fCat','fEq','fNum','fDesc'].forEach(id=>$(id).value='');
+  $('anexo').value='';$('anexoNome').textContent='';
+  await carregar();
+  toast(`Chamado #${data.n} enviado`);
+}
+carregar();ir('login');
+</script>
+</body>
+</html>
